@@ -13,7 +13,7 @@ public class DemoViewer {
         pane.setLayout(new BorderLayout());
         
         //horizontal slider
-        JSlider headingSlider = new JSlider(0,360,180);  //value=200 is slider's starting position, the middle
+        JSlider headingSlider = new JSlider(0,360,180);  //value=180 is slider's starting position, the middle
         pane.add(headingSlider, BorderLayout.SOUTH);
 
         //vertical slider
@@ -78,7 +78,7 @@ public class DemoViewer {
                 g2.setColor(Color.WHITE);
 
                 for (Triangle t : tris) {
-                    //transform all Triangle vertexes based on current rotation 
+                    //transform all Triangle vertices based on current rotation 
                     Vertex v1 = transform.transform(t.v1);
                     Vertex v2 = transform.transform(t.v2);
                     Vertex v3 = transform.transform(t.v3);
