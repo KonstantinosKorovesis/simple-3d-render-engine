@@ -59,17 +59,26 @@ public class DemoViewer {
                 //transformation matrix for both XZ and YZ rotations
                 Matrix3 transform = headingTransform.multiply(pitchTransform);
 
-                int choice = 1;
+                Draw.drawRectangles(Shape3D.cube(0.2), transform, g2);
+
+                int choice = 3;
                 switch (choice) {
                     //tetrahedron
                     case 1:
-                        List<Triangle> tris = Shape3D.tetrahedron();
+                        List<Triangle> tris = Shape3D.tetrahedron(100);
                         Draw.drawTriangles(tris, transform, g2);
                         break;
+
                     //cube
                     case 2:
-                        List<Rectangle> recs = Shape3D.cube();
+                        List<Rectangle> recs = Shape3D.cube(100);
                         Draw.drawRectangles(recs, transform, g2);
+                        break;
+                    
+                    //cuboid
+                    case 3:
+                        List<Rectangle> recs2 = Shape3D.cuboid(50,75,100);
+                        Draw.drawRectangles(recs2, transform, g2);
                         break;
                 }
             }
@@ -112,6 +121,38 @@ class Triangle extends Shape2D {
         this.v2 = v2;
         this.v3 = v3;
     }
+    Triangle copy() {
+        Vertex v1Copy = new Vertex(v1.x, v1.y, v1.z);
+        Vertex v2Copy = new Vertex(v2.x, v2.y, v2.z); 
+        Vertex v3Copy = new Vertex(v3.x, v3.y, v3.z); 
+        Color colorCopy = new Color(color.getRGB());
+        return new Triangle(v1Copy, v2Copy, v3Copy, colorCopy);
+    }
+    void scaleX(double a) {
+        this.v1.x *= a;
+        this.v2.x *= a;
+        this.v3.x *= a;
+    }
+    void scaleY(double b) {
+        this.v1.y *= b;
+        this.v2.y *= b;
+        this.v3.y *= b;
+    }
+    void scaleZ(double c) {
+        this.v1.z *= c;
+        this.v2.z *= c;
+        this.v3.z *= c;
+    }
+    void scale(double a, double b, double c) {
+        scaleX(a);
+        scaleY(b);
+        scaleZ(c);
+    }
+    void scale(double x) {
+        scaleX(x);
+        scaleY(x);
+        scaleZ(x);
+    }
     @Override
     public String toString() {
         return String.format("%s,\n%s,\n%s\n", v1.toString(), v2.toString(), v3.toString());
@@ -126,6 +167,14 @@ class Rectangle extends Shape2D {
         this.v2 = v2;
         this.v3 = v3;
         this.v4 = v4;
+    }
+    Rectangle copy() {
+        Vertex v1Copy = new Vertex(v1.x, v1.y, v1.z);
+        Vertex v2Copy = new Vertex(v2.x, v2.y, v2.z); 
+        Vertex v3Copy = new Vertex(v3.x, v3.y, v3.z); 
+        Vertex v4Copy = new Vertex(v4.x, v4.y, v4.z);
+        Color colorCopy = new Color(color.getRGB());
+        return new Rectangle(v1Copy, v2Copy, v3Copy, v4Copy, colorCopy);
     }
     List<Triangle> triangulate() {
         List<Vertex> vers = new ArrayList<Vertex>();
@@ -148,6 +197,34 @@ class Rectangle extends Shape2D {
         tris.add(new Triangle(diagAcross, vers.get(1), v1, color));
         return tris;
     }
+    void scaleX(double a) {
+        this.v1.x *= a;
+        this.v2.x *= a;
+        this.v3.x *= a;
+        this.v4.x *= a;
+    }
+    void scaleY(double b) {
+        this.v1.y *= b;
+        this.v2.y *= b;
+        this.v3.y *= b;
+        this.v4.y *= b;
+    }
+    void scaleZ(double c) {
+        this.v1.z *= c;
+        this.v2.z *= c;
+        this.v3.z *= c;
+        this.v4.z *= c;
+    }
+    void scale(double a, double b, double c) {
+        scaleX(a);
+        scaleY(b);
+        scaleZ(c);
+    }
+    void scale(double x) {
+        scaleX(x);
+        scaleY(x);
+        scaleZ(x);
+    }
     @Override
     public String toString() {
         return String.format("%s,\n%s,\n%s,\n%s\n", v1.toString(), v2.toString(), v3.toString(), v4.toString());
@@ -156,60 +233,67 @@ class Rectangle extends Shape2D {
 
 class Shape3D {
     //returns a List of Triangles that form a standard tetrahedron
-    static List<Triangle> tetrahedron() {
-        List<Triangle> t = new ArrayList<Triangle>();
-        t.add(new Triangle(new Vertex(100, 100, 100),
-                            new Vertex(-100, -100, 100),
-                            new Vertex(-100, 100, -100),
+    static List<Triangle> tetrahedron(double size) {
+        List<Triangle> tris = new ArrayList<Triangle>();
+        tris.add(new Triangle(new Vertex(size, size, size),
+                            new Vertex(-size, -size, size),
+                            new Vertex(-size, size, -size),
                             Color.RED));
-        t.add(new Triangle(new Vertex(100, 100, 100),
-                            new Vertex(-100, -100, 100),
-                            new Vertex(100, -100, -100),
+        tris.add(new Triangle(new Vertex(size, size, size),
+                            new Vertex(-size, -size, size),
+                            new Vertex(size, -size, -size),
                             Color.GREEN));
-        t.add(new Triangle(new Vertex(-100, 100, -100),
-                            new Vertex(100, -100, -100),
-                            new Vertex(100, 100, 100),
+        tris.add(new Triangle(new Vertex(-size, size, -size),
+                            new Vertex(size, -size, -size),
+                            new Vertex(size, size, size),
                             Color.BLUE));
-        t.add(new Triangle(new Vertex(-100, 100, -100),
-                            new Vertex(100, -100, -100),
-                            new Vertex(-100, -100, 100),
+        tris.add(new Triangle(new Vertex(-size, size, -size),
+                            new Vertex(size, -size, -size),
+                            new Vertex(-size, -size, size),
                             Color.YELLOW));
-        return t;
+        return tris;
     }
-    static List<Rectangle> cube() {
-        List<Rectangle> r = new ArrayList<Rectangle>();
-        r.add(new Rectangle(new Vertex(-100, 100, 100),
-                            new Vertex(-100, -100, 100),
-                            new Vertex(100, -100, 100),
-                            new Vertex(100, 100, 100),
-                            Color.RED));
-        r.add(new Rectangle(new Vertex(-100, 100, -100),
-                            new Vertex(-100, -100, -100),
-                            new Vertex(100, -100, -100),
-                            new Vertex(100, 100, -100),
-                            Color.RED));
-        r.add(new Rectangle(new Vertex(-100, 100, 100),
-                            new Vertex(-100, -100, 100),
-                            new Vertex(-100, -100, -100),
-                            new Vertex(-100, 100, -100),
-                            Color.GREEN));
-        r.add(new Rectangle(new Vertex(100, 100, 100),
-                            new Vertex(100, -100, 100),
-                            new Vertex(100, -100, -100),
-                            new Vertex(100, 100, -100),
-                            Color.GREEN));
-        r.add(new Rectangle(new Vertex(-100, 100, 100),
-                            new Vertex(100, 100, 100),
-                            new Vertex(100, 100, -100),
-                            new Vertex(-100, 100, -100),
-                            Color.BLUE));
-        r.add(new Rectangle(new Vertex(-100, -100, 100),
-                            new Vertex(100, -100, 100),
-                            new Vertex(100, -100, -100),
-                            new Vertex(-100, -100, -100),
-                            Color.BLUE));
-        return r;
-    } 
+    //returns a List of Rectangles that form a cube
+    static List<Rectangle> cube(double size) {
+        List<Rectangle> rects = new ArrayList<Rectangle>();
+        Rectangle r1 = new Rectangle(new Vertex(-size, size, size),     //back face (furtherst away from observer)
+                                    new Vertex(-size, -size, size),
+                                    new Vertex(size, -size, size),
+                                    new Vertex(size, size, size),
+                                    Color.RED);
+        rects.add(r1);
+        Rectangle r2 = r1.copy();
+        r2.scaleZ(-1);                                                  //front face
+        rects.add(r2);
+        Rectangle r3 = new Rectangle(new Vertex(-size, size, size),     //left face
+                                    new Vertex(-size, -size, size),
+                                    new Vertex(-size, -size, -size),
+                                    new Vertex(-size, size, -size),
+                                    Color.GREEN);
+        rects.add(r3);
+        Rectangle r4 = r3.copy();
+        r4.scaleX(-1);                                                  //right face
+        rects.add(r4);
+        Rectangle r5 = new Rectangle(new Vertex(-size, size, size),     //upper face
+                                    new Vertex(size, size, size),
+                                    new Vertex(size, size, -size),
+                                    new Vertex(-size, size, -size),
+                                    Color.BLUE);
+        rects.add(r5);
+        Rectangle r6 = r5.copy(); 
+        r6.scaleY(-1);                                                  //lower face
+        rects.add(r6);
+        return rects;
+    }
+    static List<Rectangle> cuboid(int length, int width, int height) {
+        List<Rectangle> rects = cube(1);
+        for (Rectangle r : rects) {
+            r.scaleX(length);
+            r.scaleY(width);
+            r.scaleZ(height);
+        }
+        return rects;
+    }
 }
 
 class Matrix3 {
