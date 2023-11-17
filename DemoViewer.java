@@ -1,6 +1,6 @@
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import javax.swing.*;
-import java.awt.geom.Path2D;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -31,12 +31,9 @@ public class DemoViewer {
                 //turning Graphics object to Graphics2D which is more often used for more advanced 2D graphics operations
                 Graphics2D g2 = (Graphics2D) g;
 
-                //fills the panel with black, getWidth() and setWidth() are methods available in JPanel
+                //fill the panel with black, getWidth() and setWidth() are methods available in JPanel
                 g2.setColor(Color.BLACK);
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                
-                //make the center the point where things will be placed (it's set to the top left corner by default)
-                g2.translate(getWidth() / 2, getHeight() / 2);
                 
                 //the values of the sliders
                 double heading = Math.toRadians(headingSlider.getValue());
@@ -59,26 +56,27 @@ public class DemoViewer {
                 //transformation matrix for both XZ and YZ rotations
                 Matrix3 transform = headingTransform.multiply(pitchTransform);
 
-                Draw.drawRectangles(Shape3D.cube(0.2), transform, g2);
+                //store necessary objects and values in Data class so they are accessible by other classes
+                Data.store(transform, g2, getWidth(), getHeight());
 
-                int choice = 3;
+                int choice = 2;
                 switch (choice) {
                     //tetrahedron
                     case 1:
                         List<Triangle> tris = Shape3D.tetrahedron(100);
-                        Draw.drawTriangles(tris, transform, g2);
+                        Draw.drawTriangles(tris);
                         break;
 
                     //cube
                     case 2:
                         List<Rectangle> recs = Shape3D.cube(100);
-                        Draw.drawRectangles(recs, transform, g2);
+                        Draw.drawRectangles(recs);
                         break;
                     
                     //cuboid
                     case 3:
                         List<Rectangle> recs2 = Shape3D.cuboid(50,75,100);
-                        Draw.drawRectangles(recs2, transform, g2);
+                        Draw.drawRectangles(recs2);
                         break;
                 }
             }
@@ -121,6 +119,7 @@ class Triangle extends Shape2D {
         this.v2 = v2;
         this.v3 = v3;
     }
+    //return a deep copy of a Triangle object
     Triangle copy() {
         Vertex v1Copy = new Vertex(v1.x, v1.y, v1.z);
         Vertex v2Copy = new Vertex(v2.x, v2.y, v2.z); 
@@ -168,6 +167,7 @@ class Rectangle extends Shape2D {
         this.v3 = v3;
         this.v4 = v4;
     }
+    //return a deep copy of the Rectangle object
     Rectangle copy() {
         Vertex v1Copy = new Vertex(v1.x, v1.y, v1.z);
         Vertex v2Copy = new Vertex(v2.x, v2.y, v2.z); 
@@ -176,6 +176,7 @@ class Rectangle extends Shape2D {
         Color colorCopy = new Color(color.getRGB());
         return new Rectangle(v1Copy, v2Copy, v3Copy, v4Copy, colorCopy);
     }
+    //turn Rectangle object into 2 Triangles
     List<Triangle> triangulate() {
         List<Vertex> vers = new ArrayList<Vertex>();
         vers.add(v1);
@@ -285,12 +286,11 @@ class Shape3D {
         rects.add(r6);
         return rects;
     }
+    //returns a List of Rectangles that form a cuboid
     static List<Rectangle> cuboid(int length, int width, int height) {
         List<Rectangle> rects = cube(1);
         for (Rectangle r : rects) {
-            r.scaleX(length);
-            r.scaleY(width);
-            r.scaleZ(height);
+            r.scale(length, width, height);
         }
         return rects;
     }
@@ -304,10 +304,10 @@ class Matrix3 {
     //returns the matrix that results from the multiplication of 3x3 matrices this and other
     Matrix3 multiply(Matrix3 other) {
         double[] result = new double[9];
-        for (int row=0; row<3; row++) {         //rows of this matrix
-            for (int col=0; col<3; col++) {     //columns of other matrix
-                for (int k=0; k<3; k++) {       //use k to traverse the current row and col simultaneously 
-                    result[row*3 + col] += this.values[row*3 + k] * other.values[k*3 + col];
+        for (int row = 0; row < 3; row++) {         //rows of this matrix
+            for (int col = 0; col < 3; col++) {     //columns of other matrix
+                for (int k = 0; k < 3; k++) {       //use k to traverse the current row and col simultaneously 
+                    result[row * 3 + col] += this.values[row * 3 + k] * other.values[k * 3 + col];
                 }
             }
         }
@@ -323,25 +323,78 @@ class Matrix3 {
     }
 }
 
+class Data {
+    //store all objects and values needed outside the JPanel paintComponent method
+    static Matrix3 transform;
+    static Graphics2D g2;
+    static double width, height;
+    static void store(Matrix3 transform, Graphics2D g2, double width, double height) {
+        Data.transform = transform;
+        Data.g2 = g2;
+        Data.width = width;
+        Data.height = height;
+    }
+}
+
 class Draw {
-    //receives Triangles, the transformation matrix object and the g2 object to draw on
-    static void drawTriangles(List<Triangle> tris, Matrix3 transform, Graphics2D g2) {
-        g2.setColor(Color.WHITE);
-        Path2D path = new Path2D.Double();
+    //receives Triangles List
+    static void drawTriangles(List<Triangle> tris) {
+        BufferedImage img = new BufferedImage((int) Data.width, (int) Data.height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = Data.g2;
+        Matrix3 transform = Data.transform;
+
+        //depth buffer array for storing the depth of each pixel 
+        double[] zBuffer = new double[img.getWidth() * img.getHeight()];
+        for (int i = 0; i < zBuffer.length; i++) {
+            zBuffer[i] = Double.NEGATIVE_INFINITY;
+        }
+
         for (Triangle t : tris) {
             Vertex v1 = transform.transform(t.v1);
             Vertex v2 = transform.transform(t.v2);
             Vertex v3 = transform.transform(t.v3);
-            path.moveTo(v1.x, v1.y);
-            path.lineTo(v2.x, v2.y);
-            path.lineTo(v3.x, v3.y);
-            path.closePath();
-            g2.draw(path);
-            path.reset();
+
+            //manual translation to the center without using Graphics2D
+            v1.x += Data.width / 2;
+            v1.y += Data.height / 2;
+            v2.x += Data.width / 2;
+            v2.y += Data.height / 2;
+            v3.x += Data.width / 2;
+            v3.y += Data.height / 2;
+
+            //rectangular bounds of triangle
+            int minX = (int) Math.max(0, Math.ceil(Math.min(v1.x, Math.min(v2.x, v3.x))));
+            int maxX = (int) Math.min(img.getWidth() - 1, Math.floor(Math.max(v1.x, Math.max(v2.x, v3.x))));
+            int minY = (int) Math.max(0, Math.ceil(Math.min(v1.y, Math.min(v2.y, v3.y))));
+            int maxY = (int) Math.min(img.getHeight() - 1, Math.floor(Math.max(v1.y, Math.max(v2.y, v3.y))));
+
+            //the area the rectangular bounds take up
+            //(basically double the area of the triangle)
+            double triangleArea = (v1.y - v3.y) * (v2.x - v3.x) + (v2.y - v3.y) * (v3.x - v1.x);
+
+            //rasterize triangles pixel-by-pixel using barycentric coordinates and depth buffer
+            for (int y = minY; y <= maxY; y++) {
+                for (int x = minX; x <= maxX; x++) {
+                    double b1 = ((y - v3.y) * (v2.x - v3.x) + (v2.y - v3.y) * (v3.x - x)) / triangleArea;
+                    double b2 = ((y - v1.y) * (v3.x - v1.x) + (v3.y - v1.y) * (v1.x - x)) / triangleArea;
+                    double b3 = ((y - v2.y) * (v1.x - v2.x) + (v1.y - v2.y) * (v2.x - x)) / triangleArea;
+                    if (b1 >= 0 && b1 <= 1 && b2 >= 0 && b2 <= 1 && b3 >= 0 && b3 <= 1) {
+                        double depth = b1 * v1.z + b2 * v2.z + b3 * v3.z;
+                        int zIndex = y * img.getWidth() + x;
+                        if (zBuffer[zIndex] < depth) {
+                            img.setRGB(x, y, t.color.getRGB());
+                            zBuffer[zIndex] = depth;
+                        }
+                    }
+                }
+            }
         }
+
+        //finally, draw the Buffered Image on the renderPanel
+        g2.drawImage(img, 0, 0, null);
     }
-    //receives Rectangles which are turned into Triangles and sent to the drawTriangles method
-    static void drawRectangles(List<Rectangle> recs, Matrix3 transform, Graphics2D g2) {
+    //receives Rectangles List
+    static void drawRectangles(List<Rectangle> recs) {
         List<Triangle> tris = new ArrayList<Triangle>();
         List<Triangle> temp = new ArrayList<Triangle>();
         for (Rectangle r : recs) {
@@ -349,6 +402,6 @@ class Draw {
             tris.add(temp.get(0));
             tris.add(temp.get(1));
         }
-        drawTriangles(tris, transform, g2);
+        drawTriangles(tris);
     }
 }
